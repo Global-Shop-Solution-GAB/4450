@@ -1,0 +1,147 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("Serial Numbers")
+Gui.Form..Size(8400,4305)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form.txtSerial.Create(TextboxM)
+Gui.Form.txtSerial.Size(8385,3240)
+Gui.Form.txtSerial.Position(-45,615)
+Gui.Form.lbl1.Create(Label,"Serial Number/Extra Text:",True,2490,255,0,75,315,True,0,"Arial",10,-2147483633,0)
+Gui.Form.cmdSave.Create(Button)
+Gui.Form.cmdSave.Size(1095,375)
+Gui.Form.cmdSave.Position(6780,105)
+Gui.Form.cmdSave.Caption("SAVE")
+Gui.Form.cmdSave.Event(Click,cmdSave_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+F.ODBC.Connection!con.OpenConnection(v.Ambient.PDSN,v.Ambient.PUser,v.Ambient.PPass) 
+
+Function.Intrinsic.Control.If(V.Caller.Hook, =, "15030")
+'check if qty rejected > 0
+	Function.Intrinsic.Control.If(V.Passed.000113, >, 0)
+		V.Local.sIcon.Declare
+		F.Intrinsic.String.Build("{0}\GAB\GAS\gss2.ico",V.Caller.PluginsDir,v.Local.sIcon)
+		GUI.Form..Icon(V.Local.sIcon)
+		GUI.Form..Show
+	Function.Intrinsic.Control.Else
+		Function.Intrinsic.Control.CallSub(form_unload)
+	Function.Intrinsic.Control.EndIf	
+Function.Intrinsic.Control.ElseIf(V.Caller.Hook, =, "15040")
+' check the quality table for control numbers and RECIEVER
+	Function.Intrinsic.Control.CallSub(GetNCMR)
+Function.Intrinsic.Control.Else
+	Function.Intrinsic.Control.CallSub(form_unload)
+Function.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4450_NCMR_TEXT.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.CallSub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.Form_UnLoad.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+F.ODBC.Connection!con.Close
+Function.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4450_NCMR_TEXT.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.End
+
+Function.Intrinsic.Control.EndIf
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.cmdSave_Click.Start
+F.Intrinsic.Control.SetErrorHandler("GetNCMR_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+'save to datatable
+V.Local..BulkDeclareString(ssql, sPO, sLine, sText)
+
+V.Local.sPO.Set(V.Passed.000002)
+F.Intrinsic.String.LPad(V.Local.sPO, "0", 7, V.Local.sPO)
+V.Local.sLine.Set(V.Passed.000070)
+F.Intrinsic.String.LPad(V.Local.sLine, "0", 3, V.Local.sLine)
+F.Intrinsic.String.RPad(V.Local.sLine, "0", 4, V.Local.sLine)
+V.Local.sText.Set(V.Screen.Form!txtSerial.Text)
+GUI.Form..Visible(FALSE)
+F.Intrinsic.String.Build("Insert Into GCG_4450_NCMR_TEXT (PURCHASE_ORDER, PO_LINE, TEXT) Values ('{0}', '{1}', '{2}')", V.Local.sPO, V.Local.sLine, V.Local.sText, V.Local.ssql)
+Function.ODBC.Connection!con.Execute(V.Local.ssql)
+Function.Intrinsic.Control.CallSub(form_unload)
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("GetNCMR_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4450_NCMR_TEXT.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.CallSub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.GetNCMR.Start
+F.Intrinsic.Control.SetErrorHandler("GetNCMR_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+V.Local..BulkDeclareString(ssql, sPO, sLine, sRet)
+V.Local.iC.Declare(Long)
+V.Local.sPO.Set(V.Passed.000002)
+F.Intrinsic.String.LPad(V.Local.sPO, "0", 7, V.Local.sPO)
+
+'get line numbers which exist in GCG_4450_NCMR_TEXT
+F.Intrinsic.String.Build("Select PO_LINE From GCG_4450_NCMR_TEXT Where PURCHASE_ORDER = '{0}'", V.Local.sPO, V.Local.ssql)
+Function.ODBC.Connection!con.ExecuteAndReturn(V.Local.ssql, V.Local.sRet)
+F.Intrinsic.String.Replace(V.Local.sRet, "*!*", "", V.Local.sRet)
+F.Intrinsic.String.Replace(V.Local.sRet, "#$#", "','", V.Local.sRet)
+
+'F.Intrinsic.String.Build("Select rTrim(CONTROL_NUMBER) As CONTROL_NUMBER, rTrim(RECEIVER) As RECEIVER, rTrim(PO_LINE) As PO_LINE From QUALITY Where rTrim(PURCHASE_ORDER) = '{0}'", V.Local.sPO,V.Local.ssql)
+F.Intrinsic.String.Build("Select rTrim(CONTROL_NUMBER) As CONTROL_NUMBER, rTrim(RECEIVER) As RECEIVER, rTrim(PO_LINE) As PO_LINE From QUALITY Where rTrim(PURCHASE_ORDER) = '{0}' And PO_LINE IN ('{1}')", V.Local.sPO, V.Local.sRet, V.Local.ssql)
+F.Data.DataTable.CreateFromSQL("CN", "con",V.Local.ssql)
+
+'loop through this table and update GCG_4450_NCMR_TEXT
+F.Intrinsic.Control.For(V.Local.iC, 0, V.DataTable.CN.RowCount--, 1)
+	V.Local.sLine.Set(V.DataTable.CN(V.Local.iC).PO_LINE.FieldVal)
+	F.Intrinsic.String.LPad(V.Local.sLine, "0", 3, V.Local.sLine)
+	F.Intrinsic.String.RPad(V.Local.sLine, "0", 4, V.Local.sLine)
+	F.Intrinsic.String.Build("Update GCG_4450_NCMR_TEXT Set CONTROL_NUMBER = '{0}', RECEIVER = '{1}' Where PURCHASE_ORDER = '{2}' And PO_LINE = '{3}'", V.DataTable.CN(V.Local.iC).CONTROL_NUMBER.FieldVal, V.DataTable.CN(V.Local.iC).RECEIVER.FieldVal, V.Local.sPO, V.Local.sLine, V.Local.ssql) 
+	Function.ODBC.Connection!con.Execute(V.Local.ssql)
+F.Intrinsic.Control.Next(V.Local.iC)
+Function.Intrinsic.Control.CallSub(form_unload)
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("GetNCMR_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4450_NCMR_TEXT.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.CallSub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.GetNCMR.End
+
+Program.Sub.Comments.Start
+${$0$}$GCG_4450_NCMR_TEXT$}$DH1$}$4/12/2017 12:26:26 PM$}$False
+${$3$}$0$}$$}$0$}$-1$}$$}$12:00:00 AM$}$This will fulfill the requirement of having serial numbers on a return document that is sent to the vendor from Quality.
+
+Program.Sub.Comments.End
